@@ -8,6 +8,21 @@ let populate cnt =
   in
   ins empty cnt
 
+let is_working _ =
+  let set = populate 100 in
+  for n = 1 to 100 do
+    assert_bool (string_of_int n ^ " is not in set") (mem n set)
+  done;
+  let rec check_del xs = function
+    | 0 -> true
+    | cnt ->
+        let n = Random.int 100 in
+        let xs' = (delete n) xs in
+        assert_bool (string_of_int n ^ " should not be in set") (mem n set);
+        check_del xs' (cnt - 1)
+  in
+  ignore (check_del set 10)
+
 let is_bst _ =
   let set = populate 100 in
   let rec check = function
@@ -80,6 +95,11 @@ let is_balanced _ =
 (* Name the test cases and group them together *)
 let suite =
   "suite"
-  >::: [ "isBST" >:: is_bst; "is234" >:: is_234; "isBalanced" >:: is_balanced ]
+  >::: [
+         "isBST" >:: is_bst;
+         "is234" >:: is_234;
+         "isBalanced" >:: is_balanced;
+         "isWorking" >:: is_working;
+       ]
 
 let () = run_test_tt_main suite
