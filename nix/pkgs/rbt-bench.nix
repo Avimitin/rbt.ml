@@ -27,6 +27,10 @@ stdenv.mkDerivation (finalAttrs: {
     dune_3
   ];
 
+  checkInputs = with ocamlPackages; [
+    ounit2
+  ];
+
   buildPhase = ''
     runHook preBuild
 
@@ -39,6 +43,7 @@ stdenv.mkDerivation (finalAttrs: {
     nativeBuildInputs = old.nativeBuildInputs ++ [
       ocamlPackages.ocaml-lsp
       ocamlPackages.ocamlformat
+      ocamlPackages.ounit2
     ];
   });
 })
