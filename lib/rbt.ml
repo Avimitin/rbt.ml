@@ -107,24 +107,19 @@ let balance = function
 
     Okasaki, C. (1999) Red-black trees in a functional setting. J. Funct. Program. 9(04), 471–477*)
 let insert v tree =
-  let rec ins_rec v tree =
-    match tree with
-    | Node (color, left, cur, right) ->
-        if v > cur then
-          Node (color, left, cur, ins_rec v right) |> balance
-        else if v < cur then
-          Node (color, ins_rec v left, cur, right) |> balance
+  let rec ins_rec = function
+    | Node (color, left, cur, right) as node ->
+        if v < cur then
+          Node (color, ins_rec left, cur, right) |> balance
+        else if v > cur then
+          Node (color, left, cur, ins_rec right) |> balance
         else
-          tree
-    | _ -> Node (Black, Leaf, v, Leaf)
+          node
+    | _ -> Node (Red, Leaf, v, Leaf)
   in
-  match ins_rec v tree with
-  | Node (Red, Node (Red, a, x, b), y, c) ->
-      Node (Black, Node (Red, a, x, b), y, c)
-  | Node (Red, a, x, Node (Red, b, y, c)) ->
-      Node (Black, a, x, Node (Red, b, y, c))
-  (* Red root is allowed here, we only needs to advoide red-red violation *)
-  | t -> t
+  match ins_rec tree with
+  | Node (_, left, root, right) -> Node (Black, left, root, right)
+  | Leaf | LeafBB -> failwith "RBT insert failed with ins returning leaf"
 
 (* After introducing the [DoubleBlack] colored node, there are only three
    tree arrangement that needs double-black node treatment.

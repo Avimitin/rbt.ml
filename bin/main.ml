@@ -62,6 +62,6 @@ let () =
   print_endline (Benchmark.to_string e1);
   (* Performance test for deletion *)
   Benchmark.tabulate
-    (Benchmark.latency1 (Int64.of_int 100)
+    (Benchmark.latency1 (Int64.of_int 100000) ?name:(Some "Delete performance")
        (fun x -> RBTSet.del (Random.int x) set |> ignore)
        100000)
