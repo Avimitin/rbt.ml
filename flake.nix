@@ -21,13 +21,5 @@
       {
         formatter = pkgs.nixpkgs-fmt;
         legacyPackages = pkgs;
-        devShells.default = pkgs.mkShell {
-          nativeBuildInputs = with pkgs.ocamlPackages; [
-            ocaml
-            ocaml-lsp
-            ocamlformat
-            dune_3
-          ];
-        };
       });
 }
