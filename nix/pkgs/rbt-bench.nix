@@ -2,7 +2,7 @@
 , ocamlPackages
 , stdenv
 }:
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   name = "RedBlackTreeBench";
 
   src = with lib.fileset; toSource {
@@ -34,4 +34,11 @@ stdenv.mkDerivation {
 
     runHook postBuild
   '';
-}
+
+  passthru.devShell = finalAttrs.finalPackage.overrideAttrs (old: {
+    nativeBuildInputs = old.nativeBuildInputs ++ [
+      ocamlPackages.ocaml-lsp
+      ocamlPackages.ocamlformat
+    ];
+  });
+})

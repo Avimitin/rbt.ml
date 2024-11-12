@@ -21,5 +21,6 @@
       {
         formatter = pkgs.nixpkgs-fmt;
         legacyPackages = pkgs;
+        devShells.default = pkgs.rbt-bench.devShell;
       });
 }
