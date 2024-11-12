@@ -119,12 +119,12 @@ let insert v tree =
     | _ -> Node (Black, Leaf, v, Leaf)
   in
   match ins_rec v tree with
-  (* Always color the root to black, which can avoids scenario that after
-     [balance], a possibly [Red] roots have two [Red] children. We can always consider this
-     is a safe operation as increasing root will increase [BH (Black Height)] for
-     each path. *)
-  | Node (_, left, value, right) -> Node (Black, left, value, right)
-  | _ -> failwith "Unreachable, [ins_rec] should always return a living node"
+  | Node (Red, Node (Red, a, x, b), y, c) ->
+      Node (Black, Node (Red, a, x, b), y, c)
+  | Node (Red, a, x, Node (Red, b, y, c)) ->
+      Node (Black, a, x, Node (Red, b, y, c))
+  (* Red root is allowed here, we only needs to advoide red-red violation *)
+  | t -> t
 
 (* After introducing the [DoubleBlack] colored node, there are only three
    tree arrangement that needs double-black node treatment.
@@ -181,26 +181,33 @@ let insert v tree =
                                        / \
                                       d  e
 *)
-let rotate = function
+let rotate =
+  (* When the root node is colored with [DoubleBlack], we might met red-red
+     violation, and it requires the tree context to discharge double-black node,
+     so here we let the [balance] function to help resolve the tree *)
+  function
+  (* C1: Red(DoubleBlack, y, Black) *)
   | Node (Red, Node (DoubleBlack, a, x, b), y, Node (Black, c, z, d)) ->
       Node (Black, Node (Red, Node (Black, a, x, b), y, c), z, d) |> balance
   | Node (Red, LeafBB, y, Node (Black, c, z, d)) ->
       Node (Black, Node (Red, Leaf, y, c), z, d) |> balance
-  | Node (Red, Node (Black, a, x, b), y, LeafBB) ->
-      Node (Black, a, x, Node (Red, b, y, Leaf))
+  (* C2: Red(Black, y, DoubleBlack) *)
   | Node (Red, Node (Black, a, x, b), y, Node (DoubleBlack, c, z, d)) ->
       Node (Black, a, x, Node (Red, b, y, Node (Black, c, z, d))) |> balance
-  (* When the root node is colored with [DoubleBlack], we might met red-red
-     violation, and it requires the tree context to discharge double-black node,
-     so here we let the [balance] function to help resolve the tree *)
+  | Node (Red, Node (Black, a, x, b), y, LeafBB) ->
+      Node (Black, a, x, Node (Red, b, y, Leaf)) |> balance
+  (* C3: Black(DoubleBlack, y, Black) *)
   | Node (Black, Node (DoubleBlack, a, x, b), y, Node (Black, c, z, d)) ->
       Node (DoubleBlack, Node (Red, Node (Black, a, x, b), y, c), z, d)
       |> balance
   | Node (Black, LeafBB, y, Node (Black, c, z, d)) ->
-      Node (DoubleBlack, Node (Red, Leaf, y, c), z, d)
+      Node (DoubleBlack, Node (Red, Leaf, y, c), z, d) |> balance
+  (* C4: Black(Black, y, DoubleBlack) *)
+  | Node (Black, Node (Black, a, x, b), y, Node (DoubleBlack, c, z, d)) ->
+      Node (DoubleBlack, a, x, Node (Red, b, y, Node (Black, c, z, d)))
   | Node (Black, Node (Black, a, x, b), y, LeafBB) ->
       Node (DoubleBlack, a, x, Node (Red, b, y, Leaf))
-  (* The least two cases require special handling by introducing a new Black child (which must be true when their parent is a red node) *)
+  (* C5: The least two cases require special handling by introducing a new Black child (which must be true when their parent is a red node) *)
   | Node
       ( Black,
         Node (DoubleBlack, a, w, b),
@@ -213,8 +220,7 @@ let rotate = function
           e )
   | Node (Black, LeafBB, x, Node (Red, Node (Black, c, y, d), z, e)) ->
       Node (Black, Node (Black, Node (Red, Leaf, x, c), y, d) |> balance, z, e)
-  | Node (Black, Node (Red, a, w, Node (Black, b, x, c)), y, LeafBB) ->
-      Node (Black, a, w, Node (Black, b, x, Node (Red, c, y, Leaf)) |> balance)
+  (* C6 *)
   | Node
       ( Black,
         Node (Red, a, w, Node (Black, b, x, c)),
@@ -226,9 +232,9 @@ let rotate = function
           w,
           Node (Black, b, x, Node (Red, c, y, Node (Black, d, z, e))) |> balance
         )
-  | Node (_, _, _, _) as node -> node
-  | Leaf -> failwith "unreachable, [Leaf] should not be rotated"
-  | LeafBB -> failwith "unreachable, [LeafBB] should not be rotated"
+  | Node (Black, Node (Red, a, w, Node (Black, b, x, c)), y, LeafBB) ->
+      Node (Black, a, w, Node (Black, b, x, Node (Red, c, y, Leaf)) |> balance)
+  | t -> t
 
 (** Turn a double-black sub-tree to red-root tree with two black children.
 
@@ -258,6 +264,8 @@ let delete v tree =
         (cur', rotate (Node (color, left', cur, right)))
   in
   let rec del = function
+    | Leaf -> Leaf
+    | LeafBB -> failwith "should not [del] [LeafBB]"
     | Node (Black, Leaf, cur, Leaf) as node ->
         if cur == v then
           LeafBB
@@ -283,7 +291,5 @@ let delete v tree =
         else
           let cur', right' = r_del right in
           Node (color, left, cur', right') |> rotate
-    | Leaf -> Leaf
-    | LeafBB -> LeafBB
   in
   redden tree |> del
