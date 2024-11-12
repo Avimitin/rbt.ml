@@ -1,2 +1,3 @@
 assignment-operator=end-line
 if-then-else=vertical
+break-cases=toplevel
